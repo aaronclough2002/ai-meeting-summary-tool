@@ -1,5 +1,72 @@
 import os
 
+import streamlit as st
+
+st.set_page_config(
+    page_title="Aaron Clough | AI Demo",
+    page_icon="🟩",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+st.html("""
+<style>
+.block-container {
+    max-width: 1200px;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(180deg, #eef5ef 0%, #e8f1ea 100%);
+}
+
+h1, h2, h3 {
+    color: #1c2f25;
+    letter-spacing: -0.02em;
+}
+
+.stButton > button {
+    background: #4a765b;
+    color: white;
+    border: 0;
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 0.6rem 1rem;
+}
+
+.stButton > button:hover {
+    background: #335340;
+}
+
+div[data-testid="stFileUploader"] {
+    background: #f5faf6;
+    border: 1px solid #d8e5db;
+    border-radius: 16px;
+    padding: 0.75rem;
+}
+
+div[data-testid="stTextArea"] textarea,
+div[data-testid="stTextInput"] input,
+div[data-testid="stNumberInput"] input {
+    border-radius: 12px;
+}
+
+[data-testid="stMetric"] {
+    background: #f5faf6;
+    border: 1px solid #d8e5db;
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #d8e5db;
+    margin: 2rem 0;
+}
+</style>
+""")
+
 from dotenv import load_dotenv
 import streamlit as st
 from openai import OpenAI
