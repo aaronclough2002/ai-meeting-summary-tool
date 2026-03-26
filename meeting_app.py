@@ -1,18 +1,20 @@
 import os
-
+from dotenv import load_dotenv
 import streamlit as st
+from openai import OpenAI
 
+# ---------- PAGE CONFIG (ONLY ONCE) ----------
 st.set_page_config(
-    page_title="Aaron Clough | AI Demo",
-    page_icon="🟩",
+    page_title="AI Meeting Summary Tool",
+    page_icon="📝",
     layout="wide",
-    initial_sidebar_state="collapsed",
 )
 
+# ---------- CLEAN THEME (MATCHES YOUR SITE) ----------
 st.html("""
 <style>
 .block-container {
-    max-width: 1200px;
+    max-width: 1100px;
     padding-top: 2rem;
     padding-bottom: 2rem;
 }
@@ -22,16 +24,15 @@ st.html("""
 }
 
 h1, h2, h3 {
-    color: #1c2f25;
-    letter-spacing: -0.02em;
+    color: #1e2f25;
 }
 
 .stButton > button {
     background: #4a765b;
     color: white;
-    border: 0;
+    border: none;
     border-radius: 10px;
-    font-weight: 700;
+    font-weight: 600;
     padding: 0.6rem 1rem;
 }
 
@@ -39,24 +40,8 @@ h1, h2, h3 {
     background: #335340;
 }
 
-div[data-testid="stFileUploader"] {
-    background: #f5faf6;
-    border: 1px solid #d8e5db;
-    border-radius: 16px;
-    padding: 0.75rem;
-}
-
-div[data-testid="stTextArea"] textarea,
-div[data-testid="stTextInput"] input,
-div[data-testid="stNumberInput"] input {
-    border-radius: 12px;
-}
-
-[data-testid="stMetric"] {
-    background: #f5faf6;
-    border: 1px solid #d8e5db;
-    border-radius: 16px;
-    padding: 1rem;
+textarea {
+    border-radius: 10px !important;
 }
 
 hr {
@@ -64,188 +49,73 @@ hr {
     border-top: 1px solid #d8e5db;
     margin: 2rem 0;
 }
+
+.answer-card {
+    background: #f5faf6;
+    border: 1px solid #d8e5db;
+    border-radius: 16px;
+    padding: 16px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+.empty-state {
+    border: 1px dashed #d8e5db;
+    padding: 16px;
+    border-radius: 16px;
+    color: #5f6f63;
+}
 </style>
 """)
 
-from dotenv import load_dotenv
-import streamlit as st
-from openai import OpenAI
-
-# Load environment variables from .env
+# ---------- SETUP ----------
 load_dotenv()
-
-# Create OpenAI client using API key from .env
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-st.set_page_config(
-    page_title="AI Meeting Summary Tool",
-    page_icon="📝",
-    layout="wide",
-)
-
-# ---------- STYLING ----------
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
-    }
-
-    .block-container {
-        max-width: 1120px;
-        padding-top: 1.1rem;
-        padding-bottom: 1rem;
-    }
-
-    h1, h2, h3 {
-        letter-spacing: -0.02em;
-    }
-
-    .top-note {
-        color: #94a3b8;
-        margin-bottom: 1rem;
-        max-width: 920px;
-        line-height: 1.5;
-        font-size: 0.98rem;
-    }
-
-    .answer-card {
-        border: 1px solid #ffffff;
-        padding: 14px;
-        border-radius: 8px;
-        background: #0f172a;
-        line-height: 1.55;
-        white-space: pre-wrap;
-    }
-
-    .empty-state {
-        border: 1px dashed #ffffff;
-        padding: 14px;
-        border-radius: 8px;
-        color: #94a3b8;
-    }
-
-    div[data-testid="stButton"] > button,
-    div[data-testid="stFormSubmitButton"] > button {
-        border-radius: 8px;
-    }
-
-    div[data-testid="stTextArea"] textarea {
-        min-height: 320px;
-    }
-
-    div[data-testid="stVerticalBlock"] > div:empty {
-        display: none !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # ---------- HEADER ----------
 st.title("AI Meeting Summary Tool")
-st.caption("AI Demo | Built by Aaron Clough")
+st.caption("Built by Aaron Clough")
 
-st.markdown(
-    """
-    <div class="top-note">
-    Paste a meeting transcript, project notes, or weekly update text and generate a structured summary with key decisions, risks, and action items.
-    </div>
-    """,
-    unsafe_allow_html=True,
+st.write(
+    "Paste a meeting transcript, project notes, or weekly update and generate a clean, structured summary."
 )
 
-# ---------- SESSION STATE ----------
+# ---------- STATE ----------
 if "meeting_summary_output" not in st.session_state:
     st.session_state["meeting_summary_output"] = ""
 
-# ---------- TOP ----------
-col1, col2 = st.columns(2, gap="large")
+# ---------- LAYOUT ----------
+col1, col2 = st.columns(2)
 
 # ---------- INPUT ----------
 with col1:
-    st.subheader("Meeting input")
-
-    with st.expander("ℹ️ What kind of input works best?"):
-        st.markdown("""
-        This tool works best with:
-
-        - **Meeting transcripts**
-          - Full meeting notes or pasted transcripts
-        - **Freeform weekly project updates**
-          - A few paragraphs describing what happened this week
-        - **Structured status notes**
-          - Completed work, in progress items, risks, blockers, and next steps
-
-        **Best results usually come from input that includes:**
-        - key accomplishments
-        - current work in progress
-        - risks or blockers
-        - owners or next steps
-
-        **Examples of useful inputs:**
-        - meeting transcript from a project sync
-        - PM weekly status notes
-        - raw notes from Jira, Slack, or email summaries
-        """)
+    st.subheader("Input")
 
     transcript = st.text_area(
-        "Paste meeting transcript or project notes",
-        placeholder=(
-            "Paste a transcript, meeting notes, or weekly update here...\n\n"
-            "Example:\n"
-            "- Completed this week:\n"
-            "- In progress:\n"
-            "- Risks/blockers:\n"
-            "- Next steps:"
-        ),
+        "Paste notes here",
+        placeholder="Paste meeting notes, transcript, or project update...",
         label_visibility="collapsed",
     )
 
-    generate_clicked = st.button("Generate Summary")
-
-    if generate_clicked:
-        if not transcript or not transcript.strip():
-            st.error("Please paste a meeting transcript or project update first.")
+    if st.button("Generate Summary"):
+        if not transcript.strip():
+            st.error("Please paste content first.")
             st.stop()
 
         prompt = f"""
-You are helping generate a polished project or meeting summary for business stakeholders.
+Summarize this into a professional project update.
 
-Summarize the content below into a clean, structured update.
-
-Rules:
-- Ignore filler, repetition, and side conversation.
-- Focus on meaningful project, meeting, or business updates.
-- Write clearly and professionally.
-- If action items are present or implied, list them separately.
-- If risks or blockers are present, include them.
-- If decisions were made, include them.
-- Do not invent facts that are not supported by the input.
-
-Return the output in this format:
-
-Summary:
-[concise summary paragraph]
-
-Key Points:
-- ...
-- ...
-- ...
-
-Risks / Blockers:
-- ...
-- ...
-
-Action Items:
-- Owner (if known): action item
-- Owner (if known): action item
+Include:
+- Summary
+- Key Points
+- Risks / Blockers
+- Action Items
 
 Input:
 {transcript}
 """
 
-        with st.spinner("Generating summary..."):
+        with st.spinner("Generating..."):
             response = client.responses.create(
                 model="gpt-4.1-mini",
                 input=prompt,
@@ -255,7 +125,7 @@ Input:
 
 # ---------- OUTPUT ----------
 with col2:
-    st.subheader("Generated summary")
+    st.subheader("Output")
 
     if st.session_state["meeting_summary_output"]:
         st.markdown(
@@ -264,13 +134,6 @@ with col2:
         )
     else:
         st.markdown(
-            """
-            <div class="empty-state">
-            No summary yet. Paste a meeting transcript or project update on the left, then click <strong>Generate Summary</strong>.
-            </div>
-            """,
+            '<div class="empty-state">No output yet.</div>',
             unsafe_allow_html=True,
         )
-
-# ---------- BOTTOM SPACE ----------
-st.markdown("<div style='height: 120px;'></div>", unsafe_allow_html=True)
